@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #define COL_SIZE 9
 #define ROW_SIZE 9
@@ -395,7 +396,12 @@ main(int argc, char *argv[]){
     print_cells();
     capture_cells();
   }else{
-    open_file(argv[1]);
+    if( access( argv[1], F_OK ) != -1 ) {
+      open_file(argv[1]);
+    }else{
+      printf("\n Error:\n The %s doesn't exists\n", argv[1]);
+      return;
+    }
   }
   print_cells();
   print_help();
