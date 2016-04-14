@@ -395,6 +395,10 @@ void print_help(){
   printf("- O \t Open a csv file.\n");
   printf("- C \t To quit the application\n");
   printf("- H \t For help\n");
+  printf("Available functions:\n");
+  printf("- sum \t sum the values a the given cells, e.g. =sum(a1,b1)\n");
+  printf("- average \t find the average of the given cells, e.g. =average(a1,b1)\n");
+  printf("- range \t find the largest value of the given cells, e.g. =range(a1,b1,c1)\n");
   printf("\n");
 }
 
@@ -416,7 +420,7 @@ main(int argc, char *argv[]){
   print_cells();
   print_help();
   do{
-    printf("\nEnter the cell you want to update or any available options\n");
+    printf("\nEnter the cell you want to update (e.g. a1) or any available options\n");
     scanf("%s", str);
     if(strcmp(str, "C")==0){
       break;
@@ -436,7 +440,9 @@ main(int argc, char *argv[]){
     }else{
       get_cell_points(str, 0, pos);
       if(pos[0] != -1){
-        printf("Enter value for %s:\n", str);
+        printf("Enter value for %s :\n", str);
+        printf("NB. for raw values, enter an int or string, e.g. 1 or taje\n");
+        printf("NB. for functions, enter the equal sign followed by the function, e.g. =sum(a1,b1)\n");
         scanf("%s", val);
         sprintf(sheet[pos[0]][pos[1]].input, "%s", val);
         update_cell(pos[0], pos[1]);
