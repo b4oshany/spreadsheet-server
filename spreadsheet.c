@@ -279,7 +279,7 @@ void capture_cells(){
 /**
 * Save the file as a csv file.
 */
-void save_file(){
+void saveWorksheet(){
   int a, b; // counters
   char line[1000], // store each row of the spreadsheet.
    filename[50], // name of the file to store the spreadsheet.
@@ -335,7 +335,7 @@ void save_file(){
        }
     }
     // append a new line with data to the file.
-    fprintf(fpt, "%s\n\r", line);
+    fprintf(fpt, "%s\n", line);
   }
   // close the file.
   fclose(fpt);
@@ -346,8 +346,8 @@ void save_file(){
 * Open csv file as a spreadsheet.
 * @param filename {char[]} - name of the csv file.
 */
-void open_file(char filename[]){
-  int row = 0, col = 0, i, // counters
+void openWorksheet(char filename[]){
+  int row = 0, col = 0, i, i_new_line = 0, // counters
     n_chars = 10000, // number of characters in the file.
     n_str = 0; // number of characters in the scoped string.
   char lines[n_chars], // store each row of the spreadsheet.
@@ -358,10 +358,10 @@ void open_file(char filename[]){
   fpt=fopen(filename, "r"); // open the file.
   fread(lines, n_chars, 1, fpt); // read in the content of the file.
   for(i=0; i<strlen(lines); i++){
-    // If a space occurs, update the sheet and capture a new cell data.
     if(lines[i] == delimiter){
       update_cell(row, col);
       col++;
+      i_new_line = 0;
     }else if(lines[i] == '\n'){
       update_cell(row, col);
       row++;
@@ -372,6 +372,7 @@ void open_file(char filename[]){
       if(n_str > largest_cell){
         largest_cell = n_str;
       }
+      i_new_line = 0;
     }
   }
 }
@@ -397,7 +398,7 @@ main(int argc, char *argv[]){
     capture_cells();
   }else{
     if( access( argv[1], F_OK ) != -1 ) {
-      open_file(argv[1]);
+      openWorksheet(argv[1]);
     }else{
       printf("\n Error:\n The %s doesn't exists\n", argv[1]);
       return;
@@ -411,13 +412,18 @@ main(int argc, char *argv[]){
     if(strcmp(str, "C")==0){
       break;
     }else if(strcmp(str, "S")==0){
-      save_file();
+      saveWorksheet();
     }else if(strcmp(str, "H")==0){
       print_help();
     }else if(strcmp(str, "O")==0){
       printf("\nEnter the name of the file you wish to open\n");
       scanf("%s", filename);
-      open_file(filename);
+      if( access( filename, F_OK ) != -1 ) {
+        openWorksheet(filename);
+      }else{
+        printf("\n Error:\n The %s doesn't exists\n", filename);
+        return;
+      }
     }else{
       get_cell_points(str, 0, pos);
       if(pos[0] != -1){
