@@ -347,7 +347,7 @@ void saveWorksheet(){
 * @param filename {char[]} - name of the csv file.
 */
 void openWorksheet(char filename[]){
-  int row = 0, col = 0, i, i_new_line = 0, // counters
+  int row = 0, col = 0, i, // counters
     n_chars = 10000, // number of characters in the file.
     n_str = 0; // number of characters in the scoped string.
   char lines[n_chars], // store each row of the spreadsheet.
@@ -358,21 +358,30 @@ void openWorksheet(char filename[]){
   fpt=fopen(filename, "r"); // open the file.
   fread(lines, n_chars, 1, fpt); // read in the content of the file.
   for(i=0; i<strlen(lines); i++){
+    // Ignore all carriage return.
+    if(lines[i] == '\r'){
+      continue;
+    }
     if(lines[i] == delimiter){
+      // the character is a delimiter, for instance a comma, then move to
+      // new column in the current row.
       update_cell(row, col);
       col++;
-      i_new_line = 0;
     }else if(lines[i] == '\n'){
+      // if the character is a new line, then move to the next row
+      // within the spreadsheet.
       update_cell(row, col);
       row++;
       col=0;
     }else{
+      // Append the current character to the current cell.
       sprintf(sheet[row][col].input, "%s%c", sheet[row][col].input, lines[i]);
+      // Check the length of the string in the cell, if it's greater than
+      // the largest string record, set it as the largest string recorded.
       n_str = strlen(sheet[row][col].input);
       if(n_str > largest_cell){
         largest_cell = n_str;
       }
-      i_new_line = 0;
     }
   }
 }
