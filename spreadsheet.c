@@ -131,54 +131,6 @@ void update_cell_by_func(int r, int c, int ln){
   sheet[r][c].intVal = calc_result(func, data, count);
 }
 
-void update_cell(int r, int c){
-  int val = numeric(sheet[r][c].input), ln, a;
-  ln = strlen(sheet[r][c].input);
-  if(ln > 0){
-    if(sheet[r][c].input != "0" && val != 0){
-      strcpy(sheet[r][c].type, "numeric");
-      sheet[r][c].intVal = val;
-    }else if(sheet[r][c].input[0] == '='){
-      update_cell_by_func(r, c, ln);
-      strcpy(sheet[r][c].type, "function");
-    }else{
-      strcpy(sheet[r][c].type, "string");
-    }
-  }
-}
-
-/**
-* Capture the input from the user and update the spreadsheet data.
-*/
-void capture_cells(){
- int row = 0, // cell row
-  col = 0, // cell column
-  n_str, // string length
-  str_end = 0; // ending of a string
- char c, delimiter = ' ';
- printf("Enter each cell separated by space (for columns) and new lines (for rows): \n");
- do{
-   scanf("%c", &c);
-   // If a space occurs, update the sheet and capture a new cell data.
-   if(c == delimiter){
-     update_cell(row, col);
-     col++;
-     str_end = 0;
-   }else if(c == '\n'){
-     update_cell(row, col);
-     row++;
-     str_end++;
-     col=0;
-   }else{
-     sprintf(sheet[row][col].input, "%s%c", sheet[row][col].input, c);
-     n_str = strlen(sheet[row][col].input);
-     if(n_str > largest_cell){
-       largest_cell = n_str;
-     }
-   }
- }while(str_end != 2);
-}
-
 /**
 * Print the Column headings
 * @param spaces {char[]} - space characters to space each heading character by.
@@ -219,7 +171,12 @@ void print_int_cell(int data, char spaces[]){
   print_str_cell(str, spaces);
 }
 
-void print_cells(){
+
+/**
+* Print a specific number of rows.
+* @param num_rows {int} - Number of rows to print.
+*/
+void print_rows(int num_rows){
   int a, b, i, ln, d_space = 2, num_side_space = 0;
   num_side_space = largest_cell/2 + d_space;
   // printf("n sides: %d\n", num_side_space);
@@ -238,7 +195,7 @@ void print_cells(){
   print_dash(num_side_space);
   print_heading(spaces);
   print_dash(num_side_space);
-  for (a = 0; a < ROW_SIZE; a++) {
+  for (a = 0; a < num_rows; a++) {
      printf("   | %d |", a+1);
      for (b = 0 ; b < COL_SIZE; b++) {
         if(is_cell_numeric(a, b)){
@@ -258,6 +215,64 @@ void print_cells(){
      printf("\n");
      print_dash(num_side_space);
   }
+}
+
+/**
+* Print all rows and columns.
+*/
+void print_cells(){
+  print_rows(ROW_SIZE);
+}
+
+
+
+void update_cell(int r, int c){
+  int val = numeric(sheet[r][c].input), ln, a;
+  ln = strlen(sheet[r][c].input);
+  if(ln > 0){
+    if(sheet[r][c].input != "0" && val != 0){
+      strcpy(sheet[r][c].type, "numeric");
+      sheet[r][c].intVal = val;
+    }else if(sheet[r][c].input[0] == '='){
+      update_cell_by_func(r, c, ln);
+      strcpy(sheet[r][c].type, "function");
+    }else{
+      strcpy(sheet[r][c].type, "string");
+    }
+  }
+}
+
+/**
+* Capture the input from the user and update the spreadsheet data.
+*/
+void capture_cells(){
+ int row = 0, // cell row
+  col = 0, // cell column
+  n_str, // string length
+  str_end = 0; // ending of a string
+ char c, delimiter = ' ';
+ printf("Enter each cell separated by space (for columns) and new lines (for rows): \n");
+ do{
+   scanf("%c", &c);
+   // If a space occurs, update the sheet and capture a new cell data.
+   if(c == delimiter){
+     update_cell(row, col);
+     col++;
+     str_end = 0;
+   }else if(c == '\n'){
+     update_cell(row, col);
+     row++;
+     str_end++;
+     col=0;
+     print_rows(row);
+   }else{
+     sprintf(sheet[row][col].input, "%s%c", sheet[row][col].input, c);
+     n_str = strlen(sheet[row][col].input);
+     if(n_str > largest_cell){
+       largest_cell = n_str;
+     }
+   }
+ }while(str_end != 2);
 }
 
 /**
@@ -373,11 +388,15 @@ void print_help(){
 }
 
 main(int argc, char *argv[]){
-  char str[30], val[30];
+  char str[30], val[30], filename[50], choice;
   int pos[3];
 
-  print_cells();
-  capture_cells();
+  if(argc < 2){
+    print_cells();
+    capture_cells();
+  }else{
+    open_file(argv[1]);
+  }
   print_cells();
   print_help();
   do{
@@ -389,6 +408,10 @@ main(int argc, char *argv[]){
       save_file();
     }else if(strcmp(str, "H")==0){
       print_help();
+    }else if(strcmp(str, "O")==0){
+      printf("\nEnter the name of the file you wish to open\n");
+      scanf("%s", filename);
+      open_file(filename);
     }else{
       get_cell_points(str, 0, pos);
       if(pos[0] != -1){
