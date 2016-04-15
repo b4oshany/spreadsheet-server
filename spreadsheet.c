@@ -11,7 +11,6 @@
 
 #define COL_SIZE 9
 #define ROW_SIZE 9
-int largest_cell = 0;
 
 struct Cell{
     int pos[2];
@@ -21,6 +20,16 @@ struct Cell{
     char strVal[100];
 };
 
+struct CMDEnv{
+  int enabled;
+  char filename[50];
+  char option[10];
+  char target[3];
+  char value[100];
+};
+
+int largest_cell = 0;
+struct CMDEnv cmd;
 struct Cell sheet[ROW_SIZE][COL_SIZE];
 
 #define numeric(str) ( (int) strtol(str, (char **)NULL, 10) )
@@ -287,14 +296,19 @@ void saveWorksheet(){
   FILE *fpt; // file pointer to be used to store the spreadsheet
 
   // Prompt the users for the file name.
-  printf("What do you want to save the file as?:\n");
-  scanf("%s", filename);
-  sprintf(filename, "%s.csv", filename);
-  printf("This spreadsheet will be saved in %s\n\n", filename);
+  if(cmd.enabled != 1){
+    printf("What do you want to save the file as?:\n");
+    scanf("%s", filename);
+    sprintf(filename, "%s.csv", filename);
+    printf("This spreadsheet will be saved in %s\n\n", filename);
 
-  // Ask the user if the spreadsheet should be stored with the formula or not.
-  printf("Save the file with the formula: (Y or N)\n");
-  scanf("%c", &choice);
+    // Ask the user if the spreadsheet should be stored with the formula or not.
+    printf("Save the file with the formula: (Y or N)\n");
+    scanf("%c", &choice);
+  }else{
+    strcpy(filename, cmd.filename);
+    choice = 'Y';
+  }
 
   // Check for valid choice for
   while(choice != 'Y' && choice != 'N'){
@@ -313,7 +327,7 @@ void saveWorksheet(){
   // Iterate over each row in the sheet
   for (a = 0; a < ROW_SIZE; a++) {
     // Iterate over each column of each row in the sheet.
-    sprintf(line, ""); // ensure the line is not empty
+    memset(line, 0, 1);
     for (b = 0 ; b < COL_SIZE; b++) {
       // Check if the cell is a numeric, a function or string value, and
       // append it to the line variable accordingly
@@ -402,55 +416,150 @@ void print_help(){
   printf("\n");
 }
 
+/**
+* Print help for command line inputs.
+*/
+void print_cmd_help(){
+  printf("Available modes:\n");
+  printf("  -t Terminal output\n");
+  printf("Avaible options:\n");
+  printf("  -p \t print spreadsheet.\n");
+  printf("  -o <filename>\t open a csv file.\n");
+  printf("  -c <filename>\t create a csv file.\n");
+  printf("Available functions:\n");
+  printf("  --target <cell_label>\t update a cell, e.g. --target c1\n");
+  printf("  --value <cell_value>\t value of the given cells, e.g. =sum(a1,b1) ro Taje\n");
+  printf("\n");
+}
+
 main(int argc, char *argv[]){
   char str[30], val[30], filename[50], choice;
-  int pos[3];
+  int pos[3], i;
 
   if(argc < 2){
+    // if the command line argument is less than 2, then continue with normal execution
+    // of the system.
     print_cells();
     capture_cells();
   }else{
-    if( access( argv[1], F_OK ) != -1 ) {
-      openWorksheet(argv[1]);
-    }else{
-      printf("\n Error:\n The %s doesn't exists\n", argv[1]);
+    // Otherwise, check if the second argument is a valid file. If so, then open it
+    // and load its content into memory.
+    if(strcmp(argv[1], "-h")==0){
+      // Output terminal help
+      print_cmd_help();
       return;
+    }else if(strcmp(argv[1], "-t")==0){
+      // Execute command line aguments without openning the file.
+      cmd.enabled = 1;
+      if(argc > 2){
+        // Get filename
+        strcpy(cmd.filename, argv[2]);
+        // Check if file exists
+        if( access(cmd.filename, F_OK ) != -1 ) {
+          // open spreadsheet
+          openWorksheet(cmd.filename);
+        }else{
+          // Create the given file if the -c option is given after the filename.
+          if(argc > 3){
+            if(strcmp(argv[3], "-c")==0){
+              saveWorksheet();
+            }
+          }else{
+            printf("\n Error:\n The %s file doesn't exists\n", cmd.filename);
+            return;
+          }
+        }
+        // Capture additional command line arguments.
+        if(argc > 3){
+          // Capture the print all cells argument.
+          if(strcmp(argv[3], "-p")==0){
+            strcpy(cmd.option, argv[3]);
+          }else{
+            // Capture the target cell and value of the cell from the command line.
+            int check = 0;
+            for(i=3; i < argc; i++){
+              if(strcmp(argv[i], "--target")==0){
+                // Capture the target cell
+                strcpy(cmd.target, argv[i+1]);
+              }else if(strcmp(argv[i], "--value")==0 || check == 1){
+                // Capture the value of the cell.
+                if(check == 0){
+                  check = 1;
+                  continue;
+                }
+                if(cmd.value[0] != '\0'){
+                  sprintf(cmd.value, "%s%s ", cmd.value, argv[i]);
+                }else{
+                  sprintf(cmd.value, "%s ", argv[i]);
+                }
+              }
+            }
+          }
+        }
+      }else{
+          print_cmd_help();
+          return;
+      }
+    }else{
+      // Open the given file if exists.
+      strcpy(cmd.filename, argv[1]);
+      if( access(cmd.filename, F_OK ) != -1 ) {
+        openWorksheet(cmd.filename);
+      }else{
+        printf("\n Error:\n The %s file doesn't exists\n", cmd.filename);
+        return;
+      }
     }
   }
   print_cells();
-  print_help();
-  do{
-    printf("\nEnter the cell you want to update (e.g. a1) or any available options\n");
-    scanf("%s", str);
-    if(strcmp(str, "C")==0){
-      break;
-    }else if(strcmp(str, "S")==0){
+  if(cmd.enabled != 1){
+    print_help();
+  }else if(strcmp(cmd.option, "-p")==0){
+    print_cmd_help();
+    return;
+  }
+  if(cmd.enabled != 1){
+    do{
+      printf("\nEnter the cell you want to update (e.g. a1) or any available options\n");
+      scanf("%s", str);
+      if(strcmp(str, "C")==0){
+        break;
+      }else if(strcmp(str, "S")==0){
+        saveWorksheet();
+      }else if(strcmp(str, "H")==0){
+        print_help();
+      }else if(strcmp(str, "O")==0){
+        printf("\nEnter the name of the file you wish to open\n");
+        scanf("%s", filename);
+        if( access( filename, F_OK ) != -1 ) {
+          openWorksheet(filename);
+        }else{
+          printf("\n Error:\n The %s doesn't exists\n", filename);
+          return;
+        }
+      }else{
+        get_cell_points(str, 0, pos);
+        if(pos[0] != -1){
+          printf("Enter value for %s :\n", str);
+          printf("NB. for raw values, enter an int or string, e.g. 1 or taje\n");
+          printf("NB. for functions, enter the equal sign followed by the function, e.g. =sum(a1,b1)\n");
+          scanf("%s", val);
+          sprintf(sheet[pos[0]][pos[1]].input, "%s", val);
+          update_cell(pos[0], pos[1]);
+          print_cells();
+        }else{
+          printf("No such cell exists, %s\n", str);
+          continue;
+        }
+      }
+    }while(1);
+  }else{
+    get_cell_points(cmd.target, 0, pos);
+    if(pos[0] != -1){
+      sprintf(sheet[pos[0]][pos[1]].input, "%s", cmd.value);
+      update_cell(pos[0], pos[1]);
+      print_cells();
       saveWorksheet();
-    }else if(strcmp(str, "H")==0){
-      print_help();
-    }else if(strcmp(str, "O")==0){
-      printf("\nEnter the name of the file you wish to open\n");
-      scanf("%s", filename);
-      if( access( filename, F_OK ) != -1 ) {
-        openWorksheet(filename);
-      }else{
-        printf("\n Error:\n The %s doesn't exists\n", filename);
-        return;
-      }
-    }else{
-      get_cell_points(str, 0, pos);
-      if(pos[0] != -1){
-        printf("Enter value for %s :\n", str);
-        printf("NB. for raw values, enter an int or string, e.g. 1 or taje\n");
-        printf("NB. for functions, enter the equal sign followed by the function, e.g. =sum(a1,b1)\n");
-        scanf("%s", val);
-        sprintf(sheet[pos[0]][pos[1]].input, "%s", val);
-        update_cell(pos[0], pos[1]);
-        print_cells();
-      }else{
-        printf("No such cell exists, %s\n", str);
-        continue;
-      }
     }
-  }while(1);
+  }
 }
