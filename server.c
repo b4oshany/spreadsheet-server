@@ -35,12 +35,6 @@ void spreadsheet_func(char cmd[]){
   int i, ln_str = strlen(cmd);
   char state[ln_str];
   char sycmd[ln_str + 100];
-  if( access("spreadsheet.c", F_OK ) == 0 ) {
-    system("gcc -w -o spreadsheet.o spreadsheet.c");
-  }else{
-    sprintf(buffer, "Error: spreadsheet app could not be found.");
-    return;
-  }
   if(cmd[0] == '-'){
     if((cmd[1] == 'o' || cmd[1] == 'O' || cmd[1] == 'c' || cmd[1] == 'C') && cmd[2] == ' '){
       int is_filename = 1;
@@ -124,6 +118,13 @@ int main(int argc, char *argv[]){
         exit(0);
     }
 
+    if( access("spreadsheet.c", F_OK ) == 0 ) {
+      system("gcc -w -o spreadsheet.o spreadsheet.c");
+    }else{
+      sprintf(buffer, "Error: spreadsheet app could not be found.");
+      return;
+    }
+
     printf("Ready to serve\n");
         /* get new socket to receive data on */
     addr_size=sizeof(recv_addr);
@@ -134,16 +135,16 @@ int main(int argc, char *argv[]){
         bytes_received=recv(sock_recv,buf,BUF_SIZE,0);
         buf[bytes_received]=0;
 
+        if (strcmp(buf,"close") == 0)
+            break;
+        }
+
         memset(buffer, 0, BUF_SIZE);
         printf("Received: %s\n",buf);
         spreadsheet_func(buf);
 
         printf("Sending:\n %s\n", buffer);
         write(sock_recv, buffer, BUF_SIZE);
-
-    if (strcmp(buf,"finish") == 0)
-        break;
-    }
 
     close(sock_recv);
     close(sock_listen);
