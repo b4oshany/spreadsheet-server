@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/types.h>	/* system type defintions */
 #include <sys/socket.h>	/* network system functions */
+#include <fcntl.h>
 #include <netinet/in.h>	/* protocol & struct definitions */
 #include <stdlib.h>	/* exit() warnings */
 #include <string.h>	/* memset warnings */
@@ -12,6 +13,7 @@
 
 char buffer[BUF_SIZE];
 char filename[50];
+int fd;
 
 void upper_string(char s[]) {
    int c = 0;
@@ -22,6 +24,46 @@ void upper_string(char s[]) {
       c++;
    }
 }
+
+void lock_file(char file[])
+{
+    struct flock fl = {F_WRLCK, SEEK_SET,   0,      0,     0 };
+    fd = open(&file, "r");
+    fcntl(fd, F_SETLKW, &fl);
+}
+void unlock_file(char file[])
+{
+    struct flock fl = {F_UNLCK, SEEK_SET,   0,      0,     0 };
+    fd = open(&file, "r");
+    fcntl(fd, F_SETLK, &fl);
+}
+
+// void lock_file(char file[]){
+//   // char cp_cmd[100];
+//   // sprintf(cp_cmd, "cp %s %s.lock", file, file);
+//   // system(cp_cmd);
+//   if( access(locked_file, F_OK ) == 0 ) {
+//     FILE* f = fopen(file, "r");
+//     int result = flock(fileno(f)), LOCK_SH);
+//   }
+//   return 1;
+// }
+//
+// int is_locked(char file[]){
+//   char locked_file[50];
+//   sprintf(locked_file, "%s.lock", file);
+//   if( access(locked_file, F_OK ) == 0 ) {
+//     return 1;
+//   }else{
+//     return 0;
+//   }
+// }
+//
+// void unlocked_file(char file[]){
+//   char cp_cmd[100];
+//   sprintf(cp_cmd, "rm %s.lock", file);
+//   system(cp_cmd);
+// }
 
 void sys_cmd(char buf[]){
     char output[BUF_SIZE];
@@ -80,6 +122,8 @@ void spreadsheet_func(char cmd[]){
 }
 
 int main(int argc, char *argv[]){
+    lock_file("oshane2.csv");
+    return;
     int	sock_listen,sock_recv;
     struct sockaddr_in	my_addr,recv_addr;
     int i,addr_size,bytes_received;
